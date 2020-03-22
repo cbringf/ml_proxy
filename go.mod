@@ -1,4 +1,4 @@
-module github.com/cbringf/ml_proxy
+module github.com/cbringf/proxy
 
 go 1.14
 
