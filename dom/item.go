@@ -1,4 +1,4 @@
-package main
+package dom
 
 import "time"
 
@@ -14,5 +14,9 @@ type Item struct {
 }
 
 type ItemService interface {
-	Item(id string) (*Item, error)
+	Item(id string) (*Item, *Error)
+}
+
+type CacheItemService interface {
+	Write(item *Item) *Error
 }

@@ -6,29 +6,61 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cbringf/ml_proxy/main"
+	"github.com/cbringf/proxy/dom"
 )
 
 type ItemService struct {
 	HTTP http.Client
 }
 
-func (s *main.ItemService) Item(id string) *main.Item {
-	var mlResponse main.Item
-	var mlChildrenResponse []main.ItemChild
+func (s ItemService) Item(id string) (*dom.Item, *dom.Error) {
+	var mlResponse dom.Item
 
-	response1, err1 := http.Get(fmt.Sprintf("https://api.mercadolibre.com/items/%s", id))
-	response2, err2 := http.Get(fmt.Sprintf("https://api.mercadolibre.com/items/%s/children", id))
+	itemRes, err := request(fmt.Sprintf("https://api.mercadolibre.com/items/%s", id))
 
-	if err1 != nil {
-		fmt.Printf("Http request fails with error %s", err1)
-	} else if err2 != nil {
-		fmt.Printf("Http request fails with error %s", err2)
+	if err != nil {
+		return nil, err
+	}
+
+	childrenRes, err := request(fmt.Sprintf("https://api.mercadolibre.com/items/%s/children", id))
+
+	if err != nil {
+		return nil, err
+	}
+
+	uError := json.Unmarshal(itemRes, &mlResponse)
+
+	if uError != nil {
+		return nil, dom.UnknownError()
+	}
+
+	uError = json.Unmarshal(childrenRes, &mlResponse.Children)
+
+	if uError != nil {
+		return nil, dom.UnknownError()
+	}
+
+	return &mlResponse, nil
+}
+
+func request(url string) ([]byte, *dom.Error) {
+	response, err := http.Get(url)
+
+	if err != nil {
+		return nil, dom.UnknownError()
+	}
+
+	responseBody, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		return nil, dom.UnknownError()
+	} else if response.StatusCode != 200 {
+		var apiError = dom.UnknownError()
+
+		json.Unmarshal(responseBody, apiError)
+
+		return nil, apiError
 	} else {
-		data1, _ := ioutil.ReadAll(response1.Body)
-		data2, _ := ioutil.ReadAll(response2.Body)
-
-		json.Unmarshal(data2, &mlChildrenResponse)
-		json.Unmarshal(data1, &mlResponse)
+		return responseBody, nil
 	}
 }
