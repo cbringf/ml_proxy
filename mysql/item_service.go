@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/cbringf/proxy/dom"
 
@@ -12,7 +13,7 @@ type ItemService struct {
 	DB *sql.DB
 }
 
-func (s ItemService) Item(id string) (*dom.Item, error) {
+func (s ItemService) Item(id string) (*dom.Item, *dom.Error) {
 	var item dom.Item
 	var children = make([]*dom.ItemChild, 0)
 	var queryItem = `
@@ -24,39 +25,50 @@ func (s ItemService) Item(id string) (*dom.Item, error) {
 	err := s.DB.QueryRow(queryItem, id).Scan(&item.ID, &item.CategoryID, &item.Title, &item.Price, &item.CurrencyID, &item.StartTime, &item.StopTime)
 
 	if err == sql.ErrNoRows {
-		return nil, err
+		return nil, &dom.Error{
+			Status:  404,
+			Error:   "not_found",
+			Message: fmt.Sprintf("Item with ID %s not found", id),
+		}
 	}
 
 	rows, err := s.DB.Query(queryItemChild, id)
 
 	if err != nil {
-		return nil, err
-	} else {
-		for rows.Next() {
-			var aux dom.ItemChild
-
-			rows.Scan(&aux.ID, &aux.ItemID, &aux.StopTime)
-			children = append(children, &aux)
-		}
-		item.Children = children
+		return nil, dom.UnknownError()
 	}
+
+	for rows.Next() {
+		var aux dom.ItemChild
+
+		rows.Scan(&aux.ID, &aux.ItemID, &aux.StopTime)
+
+		children = append(children, &aux)
+	}
+	item.Children = children
+
 	return &item, nil
 }
 
-func (s ItemService) Write(item *dom.Item) error {
+func (s ItemService) Write(item *dom.Item) *dom.Error {
 	stmtIn, err := s.DB.Prepare("INSERT INTO item (id, category_id, title, price, currency_id, start_time, stop_time) VALUES (?,?,?,?,?,?,?)")
 
 	if err != nil {
-		return err
+		return dom.UnknownError()
 	}
 
 	_, err = stmtIn.Exec(item.ID, item.CategoryID, item.Title, item.Price, item.CurrencyID, item.StartTime, item.StopTime)
 
 	if err != nil {
-		return err
+		return dom.UnknownError()
 	}
 
-	stmtInCl, _ := s.DB.Prepare("INSERT INTO child (id, item_id, stop_time) VALUES (?,?,?)")
+	stmtInCl, err := s.DB.Prepare("INSERT INTO child (id, item_id, stop_time) VALUES (?,?,?)")
+
+	if err != nil {
+		// TODO Remove Item from DB
+		return dom.UnknownError()
+	}
 
 	for _, c := range item.Children {
 		child := dom.ItemChild{
@@ -67,7 +79,8 @@ func (s ItemService) Write(item *dom.Item) error {
 		_, err := stmtInCl.Exec(child.ID, child.ItemID, child.StopTime)
 
 		if err != nil {
-			return err
+			// TODO Remove Item from DB and All inserted Children
+			return dom.UnknownError()
 		}
 	}
 	return nil

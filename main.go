@@ -20,8 +20,10 @@ func handleRequest(w h.ResponseWriter, r *h.Request) {
 		dbItemService,
 		http.ItemService{HTTP: *h.DefaultClient},
 		dbItemService,
+		db,
 	)
-	proxy.RequestHandler(w, r)
+	reqInfo := proxy.RequestHandler(w, r)
+	proxy.LogRequest(&reqInfo)
 }
 
 func main() {
