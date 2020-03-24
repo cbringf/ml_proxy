@@ -18,14 +18,14 @@ type ItemProxy struct {
 }
 
 type RequestInfo struct {
-	ID                   int64
-	ItemID               string
-	Remote               bool
-	RemoteResponseTime   int
-	RemoteResponseStatus int
-	ResponseStatus       int
-	ResponseTime         int
-	RequestDate          time.Time
+	ID                   int64     `db:"id"`
+	ItemID               string    `db:"item_id"`
+	Remote               bool      `db:"remote"`
+	RemoteResponseTime   int       `db:"remote_response_time"`
+	RemoteResponseStatus int       `db:"remote_response_status"`
+	ResponseStatus       int       `db:"response_status"`
+	ResponseTime         int       `db:"response_time"`
+	RequestDate          time.Time `db:"request_date"`
 }
 
 func NewItemProxy(local ItemService, remote ItemService, cache CacheItemService, db *sql.DB) *ItemProxy {
@@ -105,4 +105,18 @@ func (proxy ItemProxy) LogRequest(reqInfo *RequestInfo) {
 	if err != nil {
 		log.Println("FAILED WRITE Request Info")
 	}
+}
+
+func (proxy ItemProxy) ReadRequests() ([]RequestInfo, *Error) {
+	var result = make([]RequestInfo, 0)
+
+	rows, _ := proxy.DB.Query("SELECT id, item_id, remote, response_status, response_time, request_date, remote_response_time, remote_response_status FROM request")
+
+	for rows.Next() {
+		var aux RequestInfo
+
+		_ = rows.Scan(&aux.ID, &aux.ItemID, &aux.Remote, &aux.ResponseStatus, &aux.ResponseTime, &aux.RequestDate, &aux.RemoteResponseTime, &aux.RemoteResponseStatus)
+		result = append(result, aux)
+	}
+	return result, nil
 }
