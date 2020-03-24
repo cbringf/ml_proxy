@@ -41,7 +41,7 @@ func handleHealthRequest(w h.ResponseWriter, r *h.Request) {
 }
 
 func main() {
-	db, _ = s.Open("mysql", "root:sniPer$3@/ml_proxy")
+	db, _ = s.Open("mysql", "root:sniPer$3@/ml_proxy?parseTime=true")
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/items/{id}", handleItemRequest).Methods("GET")

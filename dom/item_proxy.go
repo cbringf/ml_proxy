@@ -110,12 +110,13 @@ func (proxy ItemProxy) LogRequest(reqInfo *RequestInfo) {
 func (proxy ItemProxy) ReadRequests() ([]RequestInfo, *Error) {
 	var result = make([]RequestInfo, 0)
 
-	rows, _ := proxy.DB.Query("SELECT id, item_id, remote, response_status, response_time, request_date, remote_response_time, remote_response_status FROM request")
+	rows, _ := proxy.DB.Query("SELECT id, item_id, (remote = b'1'), response_status, response_time, request_date, remote_response_time, remote_response_status FROM request")
 
 	for rows.Next() {
 		var aux RequestInfo
 
 		_ = rows.Scan(&aux.ID, &aux.ItemID, &aux.Remote, &aux.ResponseStatus, &aux.ResponseTime, &aux.RequestDate, &aux.RemoteResponseTime, &aux.RemoteResponseStatus)
+
 		result = append(result, aux)
 	}
 	return result, nil
