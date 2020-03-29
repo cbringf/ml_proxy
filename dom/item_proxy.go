@@ -72,7 +72,11 @@ func (proxy ItemProxy) RequestHandler(w http.ResponseWriter, r *http.Request) Re
 			log.Println("WRITE api.ml/item To Local Cache")
 
 			response, _ = json.Marshal(item)
-			proxy.CacheService.Write(item)
+			err := proxy.CacheService.Write(item)
+
+			if err != nil {
+				log.Printf("ERROR WRITING api.ml/item To Local Cache")
+			}
 		}
 	} else {
 		response, _ = json.Marshal(item)
@@ -98,12 +102,12 @@ func (proxy ItemProxy) LogRequest(reqInfo *RequestInfo) {
 
 	if err != nil {
 		log.Println("FAILED WRITE Request Info")
-	}
+	} else {
+		_, err = stmt.Exec(&reqInfo.ItemID, &reqInfo.Remote, &reqInfo.ResponseStatus, &reqInfo.ResponseTime, &reqInfo.RemoteResponseStatus, &reqInfo.RemoteResponseTime, &reqInfo.RequestDate)
 
-	_, err = stmt.Exec(&reqInfo.ItemID, &reqInfo.Remote, &reqInfo.ResponseStatus, &reqInfo.ResponseTime, &reqInfo.RemoteResponseStatus, &reqInfo.RemoteResponseTime, &reqInfo.RequestDate)
-
-	if err != nil {
-		log.Println("FAILED WRITE Request Info")
+		if err != nil {
+			log.Println("FAILED WRITE Request Info")
+		}
 	}
 }
 

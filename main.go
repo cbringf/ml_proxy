@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	"database/sql"
 	s "database/sql"
@@ -41,11 +43,20 @@ func handleHealthRequest(w h.ResponseWriter, r *h.Request) {
 }
 
 func main() {
-	db, _ = s.Open("mysql", "root:sniPer$3@/ml_proxy?parseTime=true")
+	dbConnStr := os.Getenv("DB_CONN_STR")
+
+	if dbConnStr == "" {
+		fmt.Println("LOADING DEV ENVIRONMENT")
+
+		dbConnStr = "root:testDb@tcp(127.0.0.1:3306)/ml_proxy"
+	}
+
+	db, _ = s.Open("mysql", fmt.Sprintf("%s?parseTime=true", dbConnStr))
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/items/{id}", handleItemRequest).Methods("GET")
 	router.HandleFunc("/health", handleHealthRequest).Methods("GET")
 
+	fmt.Println("LISTENING ON PORT 8080")
 	log.Fatal(h.ListenAndServe(":8080", router))
 }
