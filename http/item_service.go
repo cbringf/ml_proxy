@@ -11,20 +11,21 @@ import (
 
 // ItemService is an HTTP implementation of ItemService interface
 type ItemService struct {
-	HTTP http.Client
+	HTTP   http.Client
+	Config *dom.Config
 }
 
 // Item resolves an ML Item from ML API
 func (s ItemService) Item(id string) (*dom.Item, *dom.Error) {
 	var mlResponse dom.Item
 
-	itemRes, err := request(fmt.Sprintf("https://api.mercadolibre.com/items/%s", id))
+	itemRes, err := request(fmt.Sprintf("%s/%s", s.Config.MLApi.Host, id))
 
 	if err != nil {
 		return nil, err
 	}
 
-	childrenRes, err := request(fmt.Sprintf("https://api.mercadolibre.com/items/%s/children", id))
+	childrenRes, err := request(fmt.Sprintf("%s/%s/children", s.Config.MLApi.Host, id))
 
 	if err != nil {
 		return nil, err

@@ -98,7 +98,7 @@ func (proxy ItemProxy) RequestHandler(w http.ResponseWriter, r *http.Request) Re
 	return reqInfo
 }
 
-// LogRequest logs all requests received by ML Proxy to /item/$ITEM route
+// LogRequest logs to DB the information of a request received by ML Proxy to /item/$ITEM route
 func (proxy ItemProxy) LogRequest(reqInfo *RequestInfo) {
 	var query = `
 		INSERT INTO request (item_id, remote, response_status, response_time, remote_response_status, remote_response_time, request_date) 
@@ -123,12 +123,26 @@ func (proxy ItemProxy) LogRequest(reqInfo *RequestInfo) {
 func (proxy ItemProxy) ReadRequests() ([]RequestInfo, *Error) {
 	var result = make([]RequestInfo, 0)
 
-	rows, _ := proxy.DB.Query("SELECT id, item_id, (remote = b'1'), response_status, response_time, request_date, remote_response_time, remote_response_status FROM request")
+	rows, err := proxy.DB.Query("SELECT id, item_id, (remote = b'1'), response_status, response_time, request_date, remote_response_time, remote_response_status FROM request")
+
+	if err != nil {
+		return nil, NewError(
+			"service_unavailable",
+			"Unable to retrieve requests data",
+			503,
+		)
+	}
+
+	defer rows.Close()
 
 	for rows.Next() {
 		var aux RequestInfo
 
-		_ = rows.Scan(&aux.ID, &aux.ItemID, &aux.Remote, &aux.ResponseStatus, &aux.ResponseTime, &aux.RequestDate, &aux.RemoteResponseTime, &aux.RemoteResponseStatus)
+		err = rows.Scan(&aux.ID, &aux.ItemID, &aux.Remote, &aux.ResponseStatus, &aux.ResponseTime, &aux.RequestDate, &aux.RemoteResponseTime, &aux.RemoteResponseStatus)
+
+		if err != nil {
+			return nil, UnknownError()
+		}
 
 		result = append(result, aux)
 	}

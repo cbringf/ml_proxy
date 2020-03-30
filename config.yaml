@@ -1,0 +1,8 @@
+ml_api:
+    host: "https://api.mercadolibre.com/items"
+db:
+    host: "127.0.0.1"
+    port: 3306
+    name: "ml_proxy"
+    user: "root"
+    pass: "testDb"

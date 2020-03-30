@@ -40,6 +40,8 @@ func (s ItemService) Item(id string) (*dom.Item, *dom.Error) {
 		return nil, dom.UnknownError()
 	}
 
+	defer rows.Close()
+
 	for rows.Next() {
 		var aux dom.ItemChild
 
@@ -60,6 +62,8 @@ func (s ItemService) Write(item *dom.Item) *dom.Error {
 		return dom.UnknownError()
 	}
 
+	defer stmtIn.Close()
+
 	_, err = stmtIn.Exec(item.ID, item.CategoryID, item.Title, item.Price, item.CurrencyID, item.StartTime, item.StopTime)
 
 	if err != nil {
@@ -72,6 +76,8 @@ func (s ItemService) Write(item *dom.Item) *dom.Error {
 		// TODO Remove Item from DB
 		return dom.UnknownError()
 	}
+
+	defer stmtInCl.Close()
 
 	for _, c := range item.Children {
 		child := dom.ItemChild{

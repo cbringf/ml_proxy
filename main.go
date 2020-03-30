@@ -16,13 +16,34 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var db *sql.DB
+// var db *sql.DB
+var config *dom.Config
+var dbConnStr string
+
+func openDbConn() (*sql.DB, error) {
+	db, err := s.Open("mysql", fmt.Sprintf("%s?parseTime=true", dbConnStr))
+
+	if err != nil {
+		fmt.Println("UNABLE to load DB connection")
+	}
+
+	// defer db.Close()
+
+	return db, err
+}
 
 func handleItemRequest(w h.ResponseWriter, r *h.Request) {
+	db, _ := openDbConn()
+
+	defer db.Close()
+
 	dbItemService := mysql.ItemService{DB: db}
 	proxy := dom.NewItemProxy(
 		dbItemService,
-		http.ItemService{HTTP: *h.DefaultClient},
+		http.ItemService{
+			HTTP:   *h.DefaultClient,
+			Config: config,
+		},
 		dbItemService,
 		db,
 	)
@@ -31,25 +52,51 @@ func handleItemRequest(w h.ResponseWriter, r *h.Request) {
 }
 
 func handleHealthRequest(w h.ResponseWriter, r *h.Request) {
+	var snapshot dom.SysRequestSnapshot
+
+	db, _ := openDbConn()
+
+	defer db.Close()
+
 	proxy := dom.ItemProxy{
 		DB: db,
 	}
-	requestList, _ := proxy.ReadRequests()
-	snapshot := dom.BuildSnapshot(requestList)
+	requestList, err := proxy.ReadRequests()
+
+	if err != nil {
+		snapshot = dom.SysRequestSnapshot{
+			SnapshotError: err,
+		}
+	} else {
+		snapshot = dom.BuildSnapshot(requestList)
+	}
 
 	snapshot.HandleRequest(w, r)
 }
 
 func main() {
-	dbConnStr := os.Getenv("DB_CONN_STR")
+	var err error
+
+	dbConnStr = os.Getenv("DB_CONN_STR")
+	config, err = dom.Load()
+
+	if err != nil {
+		return
+	}
 
 	if dbConnStr == "" {
 		fmt.Println("LOADING DEV ENVIRONMENT")
 
-		dbConnStr = "root:testDb@tcp(127.0.0.1:3306)/ml_proxy"
+		dbConnStr = fmt.Sprintf(
+			"%s:%s@tcp(%s:%s)/%s",
+			config.DB.User,
+			config.DB.Pass,
+			config.DB.Host,
+			config.DB.Port,
+			config.DB.Name,
+		)
 	}
 
-	db, _ = s.Open("mysql", fmt.Sprintf("%s?parseTime=true", dbConnStr))
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/items/{id}", handleItemRequest).Methods("GET")

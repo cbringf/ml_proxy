@@ -27,11 +27,18 @@ type SysRequestStats struct {
 // SysRequestSnapshot represents a resume of RequestInfo Collection
 type SysRequestSnapshot struct {
 	SysRequestList *[]SysRequestStats
+	SnapshotError  *Error
 }
 
 // HandleRequest handles requests for /health route
 func (sysReq SysRequestSnapshot) HandleRequest(w http.ResponseWriter, r *http.Request) {
-	response, _ := json.Marshal(sysReq.SysRequestList)
+	var response []byte
+
+	if sysReq.SnapshotError != nil {
+		response, _ = json.Marshal(sysReq.SnapshotError)
+	} else {
+		response, _ = json.Marshal(sysReq.SysRequestList)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(response)
