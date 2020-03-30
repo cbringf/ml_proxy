@@ -16,7 +16,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// var db *sql.DB
 var config *dom.Config
 var dbConnStr string
 
@@ -26,8 +25,6 @@ func openDbConn() (*sql.DB, error) {
 	if err != nil {
 		fmt.Println("UNABLE to load DB connection")
 	}
-
-	// defer db.Close()
 
 	return db, err
 }

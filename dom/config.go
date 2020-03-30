@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Config represents config.yaml file
 type Config struct {
 	MLApi struct {
 		Host string `yaml:"host"`
@@ -20,6 +21,7 @@ type Config struct {
 	} `yaml:"db"`
 }
 
+// Load loads config.yaml file
 func Load() (*Config, error) {
 	f, err := os.Open("config.yaml")
 
