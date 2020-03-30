@@ -35,9 +35,7 @@ func handleHealthRequest(w h.ResponseWriter, r *h.Request) {
 		DB: db,
 	}
 	requestList, _ := proxy.ReadRequests()
-	snapshot := dom.SysRequestSnapshot{
-		SysRequestList: dom.BuildSnapshot(requestList),
-	}
+	snapshot := dom.BuildSnapshot(requestList)
 
 	snapshot.HandleRequest(w, r)
 }

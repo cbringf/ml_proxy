@@ -10,6 +10,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// ItemProxy represents a proxy to cache and measure requests
+// to ML API /item/$ITEM route
 type ItemProxy struct {
 	DB            *sql.DB
 	LocalService  ItemService
@@ -17,6 +19,8 @@ type ItemProxy struct {
 	CacheService  CacheItemService
 }
 
+// RequestInfo represents relevant information about request
+// received by ML Proxy
 type RequestInfo struct {
 	ID                   int64     `db:"id"`
 	ItemID               string    `db:"item_id"`
@@ -28,6 +32,7 @@ type RequestInfo struct {
 	RequestDate          time.Time `db:"request_date"`
 }
 
+// NewItemProxy builds a new instance of ML Proxy
 func NewItemProxy(local ItemService, remote ItemService, cache CacheItemService, db *sql.DB) *ItemProxy {
 	return &ItemProxy{
 		LocalService:  local,
@@ -37,6 +42,7 @@ func NewItemProxy(local ItemService, remote ItemService, cache CacheItemService,
 	}
 }
 
+// RequestHandler handles all requests to ML Proxy /item/$ITEM route
 func (proxy ItemProxy) RequestHandler(w http.ResponseWriter, r *http.Request) RequestInfo {
 	var item *Item
 	var reqInfo = RequestInfo{
@@ -92,6 +98,7 @@ func (proxy ItemProxy) RequestHandler(w http.ResponseWriter, r *http.Request) Re
 	return reqInfo
 }
 
+// LogRequest logs all requests received by ML Proxy to /item/$ITEM route
 func (proxy ItemProxy) LogRequest(reqInfo *RequestInfo) {
 	var query = `
 		INSERT INTO request (item_id, remote, response_status, response_time, remote_response_status, remote_response_time, request_date) 
@@ -111,6 +118,8 @@ func (proxy ItemProxy) LogRequest(reqInfo *RequestInfo) {
 	}
 }
 
+// ReadRequests reads all stored information about requests received by ML Proxy
+// to /item/$ITEM route
 func (proxy ItemProxy) ReadRequests() ([]RequestInfo, *Error) {
 	var result = make([]RequestInfo, 0)
 

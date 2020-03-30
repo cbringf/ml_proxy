@@ -9,10 +9,12 @@ import (
 	"github.com/cbringf/proxy/dom"
 )
 
+// ItemService is an HTTP implementation of ItemService interface
 type ItemService struct {
 	HTTP http.Client
 }
 
+// Item resolves an ML Item from ML API
 func (s ItemService) Item(id string) (*dom.Item, *dom.Error) {
 	var mlResponse dom.Item
 
@@ -47,7 +49,11 @@ func request(url string) ([]byte, *dom.Error) {
 	response, err := http.Get(url)
 
 	if err != nil {
-		return nil, dom.UnknownError()
+		return nil, dom.NewError(
+			"remote_unavailable",
+			"Remote service unavailable",
+			503,
+		)
 	}
 
 	responseBody, err := ioutil.ReadAll(response.Body)

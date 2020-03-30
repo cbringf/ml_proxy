@@ -7,24 +7,29 @@ import (
 	"time"
 )
 
-type SysReponseStats struct {
+// SysResponseStats represents grouped information of
+// ML Proxy Responses  by Status
+type SysResponseStats struct {
 	StatusCode int `json:"status_code"`
 	Count      int `json:"count"`
 }
 
+// SysRequestStats represents ML Proxy Request Data
 type SysRequestStats struct {
-	Date                    time.Time         `json:"date"`
-	AvgResponseTime         int               `json:"avg_response_time"`
-	AvgResponseTimeAPICalls int               `json:"avg_response_time_api_calls"`
-	TotalRequests           int               `json:"total_requests"`
-	TotalCountAPICalls      int               `json:"total_count_api_calls"`
-	InfoRequests            []SysReponseStats `json:"info_requests"`
+	Date                    time.Time          `json:"date"`
+	AvgResponseTime         int                `json:"avg_response_time"`
+	AvgResponseTimeAPICalls int                `json:"avg_response_time_api_calls"`
+	TotalRequests           int                `json:"total_requests"`
+	TotalCountAPICalls      int                `json:"total_count_api_calls"`
+	InfoRequests            []SysResponseStats `json:"info_requests"`
 }
 
+// SysRequestSnapshot represents a resume of RequestInfo Collection
 type SysRequestSnapshot struct {
 	SysRequestList *[]SysRequestStats
 }
 
+// HandleRequest handles requests for /health route
 func (sysReq SysRequestSnapshot) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	response, _ := json.Marshal(sysReq.SysRequestList)
 
@@ -32,11 +37,16 @@ func (sysReq SysRequestSnapshot) HandleRequest(w http.ResponseWriter, r *http.Re
 	w.Write(response)
 }
 
-func BuildSnapshot(reqInfoList []RequestInfo) *[]SysRequestStats {
+// BuildSnapshot builds an Collection of SysRequestsStats from a list of
+// ML Proxy RequestInfo
+func BuildSnapshot(reqInfoList []RequestInfo) SysRequestSnapshot {
 	var snapshot = make([]SysRequestStats, 0)
+	var result = SysRequestSnapshot{
+		SysRequestList: &snapshot,
+	}
 
 	if len(reqInfoList) <= 0 {
-		return &snapshot
+		return result
 	}
 
 	var slices = make([][2]int, 0)
@@ -70,13 +80,15 @@ func BuildSnapshot(reqInfoList []RequestInfo) *[]SysRequestStats {
 		snapshot = append(snapshot, buildSnapshotFromSlice(reqInfoList[s[0]:s[1]]))
 	}
 
-	return &snapshot
+	return result
 }
 
 func buildSnapshotFromSlice(reqInfoList []RequestInfo) SysRequestStats {
+	var auxDate = reqInfoList[0].RequestDate
+
 	stats := SysRequestStats{
-		Date:         reqInfoList[0].RequestDate,
-		InfoRequests: make([]SysReponseStats, 0),
+		Date:         time.Date(auxDate.Year(), auxDate.Month(), auxDate.Day(), auxDate.Hour(), auxDate.Minute(), 0, 0, time.UTC),
+		InfoRequests: make([]SysResponseStats, 0),
 	}
 	resCodes := make(map[int]int)
 
@@ -99,7 +111,7 @@ func buildSnapshotFromSlice(reqInfoList []RequestInfo) SysRequestStats {
 		stats.AvgResponseTimeAPICalls = stats.AvgResponseTimeAPICalls / stats.TotalCountAPICalls
 	}
 	for code, count := range resCodes {
-		stats.InfoRequests = append(stats.InfoRequests, SysReponseStats{
+		stats.InfoRequests = append(stats.InfoRequests, SysResponseStats{
 			Count:      count,
 			StatusCode: code,
 		})
