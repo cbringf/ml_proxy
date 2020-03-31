@@ -99,6 +99,6 @@ func main() {
 	router.HandleFunc("/items/{id}", handleItemRequest).Methods("GET")
 	router.HandleFunc("/health", handleHealthRequest).Methods("GET")
 
-	fmt.Println("LISTENING ON PORT 8080")
+	fmt.Println("SERVER RUNNING")
 	log.Fatal(h.ListenAndServe(":8080", router))
 }
